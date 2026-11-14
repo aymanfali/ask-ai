@@ -1,0 +1,59 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ask_ai_test
+          POSTGRES_USER: ask_ai
+          POSTGRES_PASSWORD: ask_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ask_ai -d ask_ai_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://ask_ai:ask_ai_test@localhost:5432/ask_ai_test
+      TEST_REDIS_URL: redis://localhost:6379/0
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.14
+      - name: Verify dependency lock
+        run: uv lock --check
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+      - name: Check formatting and lint
+        run: uv run ruff check .
+      - name: Type check
+        run: uv run mypy src
+      - name: Test
+        run: uv run pytest --cov=ask_ai --cov-report=term-missing
