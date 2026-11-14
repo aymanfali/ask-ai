@@ -2,9 +2,9 @@ import asyncio
 import os
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
-import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

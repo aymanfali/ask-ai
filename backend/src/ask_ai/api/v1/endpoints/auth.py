@@ -6,10 +6,10 @@ from urllib.parse import quote
 
 import structlog
 from authlib.integrations.base_client.errors import OAuthError
-from joserfc.errors import JoseError
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
 from httpx2 import HTTPError as HTTPX2Error
+from joserfc.errors import JoseError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ask_ai.core.config import Settings

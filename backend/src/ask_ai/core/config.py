@@ -5,7 +5,6 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 AppEnvironment = Literal["local", "test", "staging", "production"]
 
@@ -125,7 +124,7 @@ class Settings(BaseSettings):
         return normalized
 
     @model_validator(mode="after")
-    def validate_environment_settings(self) -> "Settings":
+    def validate_environment_settings(self) -> Settings:
         database_url = self.database_url.get_secret_value()
         if not database_url.startswith(("postgresql+asyncpg://", "sqlite+aiosqlite://")):
             raise ValueError("DATABASE_URL must use postgresql+asyncpg or sqlite+aiosqlite")

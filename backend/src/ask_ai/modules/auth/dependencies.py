@@ -3,7 +3,6 @@ from __future__ import annotations
 import hmac
 from datetime import UTC, datetime
 from typing import Annotated
-from uuid import UUID
 
 import jwt
 from fastapi import Depends, Request
