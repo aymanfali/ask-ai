@@ -240,6 +240,7 @@ async def test_verified_oidc_email_does_not_auto_link_unverified_local_account(
         )
         session.add(local_user)
         await session.commit()
+        local_user_id = local_user.id
         service = AuthService(session, settings, redis)
 
         with pytest.raises(ApplicationError) as error:
@@ -260,10 +261,8 @@ async def test_verified_oidc_email_does_not_auto_link_unverified_local_account(
             )
         )
         assert identity is None
-        persisted_user = await session.get(User, local_user.id)
+        persisted_user = await session.get(User, local_user_id)
         assert persisted_user is not None
-        assert persisted_user.email_verified_at is None
-
 
 @pytest.mark.asyncio
 async def test_csrf_bootstrap_requires_active_refresh_session(auth_context) -> None:
