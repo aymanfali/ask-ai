@@ -104,3 +104,41 @@ Do not use floating point for money. Preserve raw token counts and pricing-versi
 - Each concurrent task gets its own SQLAlchemy `AsyncSession`.
 - Use explicit retention/deletion policies for personal data and audit records.
 - Never cascade-delete usage records without an approved retention/accounting policy.
+
+## Implemented authentication tables (Milestone 2)
+
+### users
+
+- `id UUID PK`
+- `email VARCHAR(320) UNIQUE NOT NULL` (normalized and case-folded by the service)
+- `password_hash TEXT NULL` (Argon2id; NULL for OIDC-only accounts)
+- `display_name VARCHAR(120) NULL`
+- `is_active BOOLEAN NOT NULL`
+- `email_verified_at TIMESTAMPTZ NULL`
+- `created_at`, `updated_at TIMESTAMPTZ NOT NULL`
+
+### auth_identities
+
+- `id UUID PK`
+- `user_id UUID FK users(id) ON DELETE CASCADE`
+- `provider VARCHAR(32) NOT NULL`
+- `provider_subject VARCHAR(255) NOT NULL`
+- `email_at_provider VARCHAR(320) NULL`
+- `created_at TIMESTAMPTZ NOT NULL`
+- Unique `(provider, provider_subject)` and index on `user_id`.
+
+### refresh_sessions
+
+- `id UUID PK`
+- `user_id UUID FK users(id) ON DELETE CASCADE`
+- `family_id UUID NOT NULL` (groups rotations for one device/browser session)
+- `token_hash CHAR(64) UNIQUE NOT NULL` (SHA-256 of a 48-byte random opaque token)
+- `expires_at TIMESTAMPTZ NOT NULL`
+- `family_expires_at TIMESTAMPTZ NOT NULL` (absolute 90-day family expiry)
+- `rotated_at TIMESTAMPTZ NULL`
+- `revoked_at TIMESTAMPTZ NULL`
+- `replaced_by_id UUID FK refresh_sessions(id) NULL`
+- `created_at TIMESTAMPTZ NOT NULL`
+- Indexes on `user_id`, `family_id`, and `expires_at`.
+
+Refresh rotation selects the current row `FOR UPDATE`, inserts the replacement, and marks the old row rotated in the same transaction. Reuse of a rotated token revokes all non-revoked rows in that family. Protected API calls join the access token's family ID to an active, unrotated refresh-session row to support immediate revocation.

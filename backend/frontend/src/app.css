@@ -1,0 +1,13 @@
+#root { min-height: 100vh; }
+.shell { min-height: 100vh; display: flex; flex-direction: column; max-width: 1440px; margin: 0 auto; padding: 0 6vw; }
+.topbar { height: 84px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #252a32; }
+.brand { display: inline-flex; align-items: center; gap: 12px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 800; letter-spacing: -.04em; }
+.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: #0e1116; background: #2dd4bf; font-size: 18px; }
+.status { display: inline-flex; align-items: center; gap: 9px; color: #9aa4b2; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; }
+.status--online .status-dot { background: #2dd4bf; box-shadow: 0 0 12px #2dd4bf66; } .status--offline .status-dot { background: #fb7185; }
+.hero { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; max-width: 760px; padding: 100px 0 120px; }
+.eyebrow { color: #2dd4bf; font-size: 11px; font-weight: 700; letter-spacing: .19em; } h1 { margin: 18px 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: clamp(44px, 7vw, 82px); line-height: 1.05; letter-spacing: -.065em; }
+.lead { color: #aab3bf; font-size: clamp(17px, 2vw, 20px); line-height: 1.7; max-width: 620px; }
+.notice { display: grid; gap: 8px; margin-top: 36px; padding: 20px 22px; max-width: 540px; border: 1px solid #2c343d; border-radius: 16px; background: #171c23; } .notice strong { color: #e6edf3; font-size: 14px; } .notice span { color: #99a4b1; font-size: 13px; line-height: 1.6; }
+.footer { padding: 24px 0; border-top: 1px solid #252a32; color: #697482; font-size: 12px; } @media (max-width: 600px) { .shell { padding: 0 22px; } .hero { padding: 76px 0 90px; } }

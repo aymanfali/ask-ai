@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from ask_ai.core.config import get_settings
 from ask_ai.database.base import Base
+from ask_ai.modules.auth import models as auth_models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
