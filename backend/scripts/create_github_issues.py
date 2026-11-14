@@ -19,7 +19,22 @@ def main() -> int:
             continue
         title = first_line[2:].strip()
         print(f"Creating: {title}")
-        result = subprocess.run(["gh", "issue", "create", "--repo", REPO, "--title", title, "--body-file", str(issue_file)], check=False, text=True, capture_output=True)
+        result = subprocess.run(
+            [
+                "gh",
+                "issue",
+                "create",
+                "--repo",
+                REPO,
+                "--title",
+                title,
+                "--body-file",
+                str(issue_file),
+            ],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
         if result.returncode != 0:
             print(result.stderr.strip(), file=sys.stderr)
             print("Stopped on first failure to avoid silently skipping an issue.", file=sys.stderr)
