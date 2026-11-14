@@ -4,8 +4,7 @@ No domain tables are created in Milestone 1. This revision makes the migration
 pipeline executable and provides a stable parent for the first domain migration.
 """
 
-from typing import Sequence
-
+from collections.abc import Sequence
 
 revision: str = "20261114_0001"
 down_revision: str | None = None

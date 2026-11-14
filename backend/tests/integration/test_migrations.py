@@ -2,9 +2,9 @@ import asyncio
 import os
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
-import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -34,4 +34,22 @@ def test_alembic_upgrade_head_on_fresh_database(monkeypatch: pytest.MonkeyPatch)
             await engine.dispose()
 
     revision = asyncio.run(read_revision())
-    assert revision == "20261114_0001"
+    assert revision == "20261114_0002"
+
+    async def verify_auth_tables() -> set[str]:
+        engine = create_async_engine(database_url)
+        try:
+            async with engine.connect() as connection:
+                result = await connection.execute(
+                    text(
+                        "SELECT tablename FROM pg_tables "
+                        "WHERE schemaname = current_schema() "
+                        "AND tablename IN ('users', 'auth_identities', 'refresh_sessions')"
+                    )
+                )
+                return set(result.scalars().all())
+        finally:
+            await engine.dispose()
+
+    tables = asyncio.run(verify_auth_tables())
+    assert tables == {"users", "auth_identities", "refresh_sessions"}

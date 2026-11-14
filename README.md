@@ -2,7 +2,7 @@
 
 A production-oriented, multi-provider AI chat platform.
 
-**Status: Milestone 1 implemented locally.** The repository foundation includes configuration, observability middleware, database/Redis lifecycle, Alembic, Docker Compose, and CI. PostgreSQL/Redis integration and container execution still require verification in the target environment.
+**Status: Milestones 1 and 2 implemented locally.** The foundation includes configuration, observability middleware, PostgreSQL/Redis lifecycle, Alembic, Docker Compose, CI, email authentication, session management, and optional Google/Apple OIDC. Real-service integration, OAuth provider credentials, dependency lock generation, and container execution still require verification in the target environment.
 
 ## Product objective
 
@@ -63,6 +63,9 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 10. Ship each feature with automated tests and operator-facing documentation.
 
 ## Documentation
+
+- [Milestone 2 — Authentication](docs/development/MILESTONE_2.md)
+- [Authentication security model](docs/security/AUTHENTICATION.md)
 
 - [Product requirements](docs/product/PRD.md)
 - [System architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)

@@ -46,6 +46,22 @@ services:
       DATABASE_URL: postgresql+asyncpg://ask_ai:${POSTGRES_PASSWORD:-ask_ai_local_only}@postgres:5432/ask_ai
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: '["http://localhost:5173"]'
+      SECRET_KEY: ${SECRET_KEY:-ask-ai-local-development-secret-change-me-please-123456789}
+      JWT_ISSUER: ask-ai
+      JWT_AUDIENCE: ask-ai-api
+      ACCESS_TOKEN_TTL_MINUTES: 15
+      REFRESH_TOKEN_TTL_DAYS: 30
+      REFRESH_SESSION_ABSOLUTE_TTL_DAYS: 90
+      AUTH_ALLOW_REGISTRATION: "true"
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_COOKIE_SAMESITE: lax
+      FRONTEND_AUTH_CALLBACK_URL: http://localhost:5173/auth/callback
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+      APPLE_REDIRECT_URI: ${APPLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/apple/callback}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:

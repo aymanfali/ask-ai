@@ -57,3 +57,10 @@ Review generated migrations manually. Never treat autogeneration as a substitute
 Settings are loaded from environment variables and local `.env` files. Never commit real secrets. `DATABASE_URL` must use `postgresql+asyncpg://` in normal environments. SQLite is accepted only for isolated tests. Production requires `APP_DEBUG=false`, a non-local database credential, and a TLS Redis URL (`rediss://`). Use explicit CORS origins when browser access is enabled.
 
 The CI workflow and Docker build resolve a lockfile before installing dependencies. For reproducible local development, run `uv lock` once, commit `uv.lock`, and use `uv sync --locked --all-groups` on subsequent installs.
+
+
+## Authentication configuration
+
+Authentication routes are documented in `../docs/development/MILESTONE_2.md`. For local development, configure `SECRET_KEY` in the root `.env`; the example contains a local-only development secret. Never use that value outside local development. Google and Apple are optional; set their client ID/secret pairs and exact redirect URIs to enable them. Google uses a top-level GET callback. Apple uses a POST `form_post` callback and requires a `SameSite=None; Secure` OAuth-state cookie while Apple is enabled; use HTTPS or a browser-supported secure localhost context for local Apple testing.
+
+Apply the authentication migration with `uv run alembic upgrade head`. The refresh credential is an HttpOnly cookie. Refresh and logout require a signed CSRF token in `X-CSRF-Token`. After a browser reload, call `GET /api/v1/auth/csrf` with `credentials: include`, retain the returned token in memory, and then call the refresh endpoint. Do not persist access or CSRF tokens in browser storage.

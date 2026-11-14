@@ -22,7 +22,7 @@ The MVP is single-tenant at the organization level: users own their own accounts
 
 - Email registration and login.
 - Secure password storage and session lifecycle.
-- OAuth/OIDC providers may be added after the email authentication flow is stable.
+- Google and Apple OpenID Connect sign-in using authorization code flow.
 - Profile and account settings.
 
 ### Chat and conversation

@@ -18,7 +18,7 @@ class FakeResult:
 
 
 class FakeConnection:
-    async def __aenter__(self) -> "FakeConnection":
+    async def __aenter__(self) -> FakeConnection:
         return self
 
     async def __aexit__(self, *_: object) -> None:
@@ -40,7 +40,7 @@ class FakeEngine:
 
 
 class FakeSession:
-    async def __aenter__(self) -> "FakeSession":
+    async def __aenter__(self) -> FakeSession:
         return self
 
     async def __aexit__(self, *_: object) -> None:

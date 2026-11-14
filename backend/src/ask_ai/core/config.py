@@ -5,7 +5,6 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 AppEnvironment = Literal["local", "test", "staging", "production"]
 
@@ -53,8 +52,44 @@ class Settings(BaseSettings):
     health_check_timeout_seconds: float = Field(default=2.0, gt=0, le=30)
     cors_origins: list[str] = Field(default_factory=list)
 
-    # Reserved for the authentication milestone. It is not used by Milestone 1.
-    secret_key: SecretStr | None = None
+    # Authentication and first-party token settings.
+    secret_key: SecretStr = SecretStr("ask-ai-local-development-secret-change-me-please-123456789")
+    jwt_issuer: str = "ask-ai"
+    jwt_audience: str = "ask-ai-api"
+    access_token_ttl_minutes: int = Field(default=15, ge=5, le=60)
+    refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
+    refresh_session_absolute_ttl_days: int = Field(default=90, ge=7, le=180)
+    auth_allow_registration: bool = True
+
+    auth_refresh_cookie_name: str = "ask_ai_refresh"
+    auth_csrf_cookie_name: str = "ask_ai_csrf"
+    auth_session_cookie_name: str = "ask_ai_oauth"
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    auth_oauth_session_ttl_seconds: int = Field(default=600, ge=60, le=1800)
+    oauth_exchange_code_ttl_seconds: int = Field(default=60, ge=15, le=180)
+    frontend_auth_callback_url: str = "http://localhost:5173/auth/callback"
+
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
+    google_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+    apple_client_id: str | None = None
+    apple_client_secret: SecretStr | None = None
+    apple_redirect_uri: str = "http://localhost:8000/api/v1/auth/apple/callback"
+
+    @field_validator("google_client_id", "apple_client_id", mode="before")
+    @classmethod
+    def empty_client_id_to_none(cls, value: str | None) -> str | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("google_client_secret", "apple_client_secret", mode="before")
+    @classmethod
+    def empty_client_secret_to_none(cls, value: SecretStr | str | None) -> SecretStr | str | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -89,7 +124,7 @@ class Settings(BaseSettings):
         return normalized
 
     @model_validator(mode="after")
-    def validate_environment_settings(self) -> "Settings":
+    def validate_environment_settings(self) -> Settings:
         database_url = self.database_url.get_secret_value()
         if not database_url.startswith(("postgresql+asyncpg://", "sqlite+aiosqlite://")):
             raise ValueError("DATABASE_URL must use postgresql+asyncpg or sqlite+aiosqlite")
@@ -98,13 +133,78 @@ class Settings(BaseSettings):
         redis_url = self.redis_url.get_secret_value()
         if not redis_url.startswith(("redis://", "rediss://")):
             raise ValueError("REDIS_URL must use redis:// or rediss://")
-        if self.app_env == "production":
-            if self.app_debug:
-                raise ValueError("APP_DEBUG must be false in production")
+        secret = self.secret_key.get_secret_value()
+        if len(secret.encode("utf-8")) < 32:
+            raise ValueError("SECRET_KEY must contain at least 32 bytes")
+        if self.refresh_session_absolute_ttl_days < self.refresh_token_ttl_days:
+            raise ValueError("Refresh session absolute lifetime must be >= refresh token lifetime")
+        callback = urlsplit(self.frontend_auth_callback_url)
+        if (
+            callback.scheme not in {"http", "https"}
+            or not callback.netloc
+            or callback.username is not None
+            or callback.password is not None
+            or callback.query
+            or callback.fragment
+        ):
+            raise ValueError(
+                "FRONTEND_AUTH_CALLBACK_URL must be an absolute HTTP(S) URL "
+                "without query or fragment"
+            )
+        provider_pairs = (
+            (self.google_client_id, self.google_client_secret, "Google"),
+            (self.apple_client_id, self.apple_client_secret, "Apple"),
+        )
+        for client_id, client_secret, provider_name in provider_pairs:
+            if bool(client_id) != bool(client_secret):
+                raise ValueError(
+                    f"Both {provider_name} OAuth client ID and client secret must be configured"
+                )
+        provider_redirects = (
+            (self.google_client_id, self.google_redirect_uri, "Google"),
+            (self.apple_client_id, self.apple_redirect_uri, "Apple"),
+        )
+        for client_id, redirect_uri, provider_name in provider_redirects:
+            parsed_redirect = urlsplit(redirect_uri)
+            if (
+                parsed_redirect.scheme not in {"http", "https"}
+                or not parsed_redirect.netloc
+                or parsed_redirect.username is not None
+                or parsed_redirect.password is not None
+                or parsed_redirect.fragment
+            ):
+                raise ValueError(f"{provider_name} redirect URI must be an absolute HTTP(S) URL")
+        if self.auth_cookie_samesite == "none" and not self.auth_cookie_secure:
+            raise ValueError("SameSite=None cookies require Secure")
+        if self.app_env in {"staging", "production"}:
+            if self.secret_key.get_secret_value().startswith("ask-ai-local-development-"):
+                raise ValueError(
+                    f"{self.app_env.title()} SECRET_KEY must be a unique random secret"
+                )
+            if not self.auth_cookie_secure:
+                raise ValueError("AUTH_COOKIE_SECURE must be true outside local/test environments")
+            if callback.scheme != "https":
+                raise ValueError(
+                    "FRONTEND_AUTH_CALLBACK_URL must use HTTPS outside local/test environments"
+                )
+            if any(
+                urlsplit(uri).scheme != "https"
+                for client_id, uri, _ in provider_redirects
+                if client_id
+            ):
+                raise ValueError(
+                    "Configured OAuth redirect URIs must use HTTPS outside local/test environments"
+                )
+            if any(not origin.startswith("https://") for origin in self.cors_origins):
+                raise ValueError("CORS_ORIGINS must use HTTPS outside local/test environments")
             if "ask_ai_local_only" in database_url:
                 raise ValueError("DATABASE_URL must not use the local-development credentials")
             if not redis_url.startswith("rediss://"):
-                raise ValueError("Production REDIS_URL must use TLS (rediss://)")
+                raise ValueError(
+                    "REDIS_URL must use TLS (rediss://) outside local/test environments"
+                )
+            if self.app_debug:
+                raise ValueError("APP_DEBUG must be false outside local/test environments")
         return self
 
 

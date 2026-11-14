@@ -1,0 +1,83 @@
+# Local development dependencies and API. Do not use the local credentials below in production.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ask_ai
+      POSTGRES_USER: ask_ai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ask_ai_local_only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ask_ai -d ask_ai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_NAME: Ask AI
+      APP_ENV: local
+      APP_DEBUG: "false"
+      LOG_LEVEL: INFO
+      API_V1_PREFIX: /api/v1
+      DATABASE_URL: postgresql+asyncpg://ask_ai:${POSTGRES_PASSWORD:-ask_ai_local_only}@postgres:5432/ask_ai
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: '["http://localhost:5173"]'
+      SECRET_KEY: ${SECRET_KEY:-ask-ai-local-development-secret-change-me-please-123456789}
+      JWT_ISSUER: ask-ai
+      JWT_AUDIENCE: ask-ai-api
+      ACCESS_TOKEN_TTL_MINUTES: 15
+      REFRESH_TOKEN_TTL_DAYS: 30
+      REFRESH_SESSION_ABSOLUTE_TTL_DAYS: 90
+      AUTH_ALLOW_REGISTRATION: "true"
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_COOKIE_SAMESITE: lax
+      FRONTEND_AUTH_CALLBACK_URL: http://localhost:5173/auth/callback
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+      APPLE_REDIRECT_URI: ${APPLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/apple/callback}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && python -m ask_ai.run"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8000/api/v1/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
