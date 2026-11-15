@@ -23,6 +23,9 @@ from ask_ai.core.security_keys import derive_application_key
 from ask_ai.database.engine import create_database_engine
 from ask_ai.infrastructure.redis import create_redis_client
 from ask_ai.modules.auth.oauth import create_oauth_registry
+from ask_ai.modules.llm.catalog import ModelCatalog
+from ask_ai.modules.llm.registry import ProviderRegistry, create_provider_registry
+from ask_ai.modules.llm.service import LLMService
 
 
 @asynccontextmanager
@@ -30,13 +33,11 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Create and deterministically dispose shared infrastructure clients."""
     settings: Settings = application.state.settings
     engine = create_database_engine(settings)
+    redis_client = None
+    provider_registry: ProviderRegistry | None = None
     try:
         redis_client = create_redis_client(settings)
-    except Exception:
-        await engine.dispose()
-        raise
-
-    try:
+        provider_registry = await create_provider_registry(settings)
         application.state.db_engine = engine
         application.state.db_session_factory = async_sessionmaker(
             bind=engine,
@@ -44,12 +45,22 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             autoflush=False,
         )
         application.state.redis = redis_client
+        application.state.llm_providers = provider_registry
+        application.state.llm_service = LLMService(
+            catalog=application.state.llm_catalog,
+            registry=provider_registry,
+        )
         yield
     finally:
         try:
-            await redis_client.aclose()
+            if provider_registry is not None:
+                await provider_registry.close()
         finally:
-            await engine.dispose()
+            try:
+                if redis_client is not None:
+                    await redis_client.aclose()
+            finally:
+                await engine.dispose()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -65,6 +76,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url="/redoc" if runtime_settings.app_env != "production" else None,
     )
     application.state.settings = runtime_settings
+    application.state.llm_catalog = ModelCatalog(
+        providers=runtime_settings.llm_providers,
+        models=runtime_settings.llm_models,
+    )
     oauth_registry = create_oauth_registry(runtime_settings)
     application.state.oauth_registry = oauth_registry
     application.state.oauth_clients = {
