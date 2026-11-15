@@ -14,31 +14,37 @@
 - [x] Add a stable API error envelope and safe exception handlers.
 - [x] Add liveness and dependency readiness probes.
 - [x] Add PostgreSQL async engine/session lifecycle.
-- [x] Add Alembic environment, initial baseline revision, and migration smoke test.
+- [x] Add Alembic environment and migration smoke test.
 - [x] Add Redis lifecycle and readiness check.
-- [x] Add Docker Compose for PostgreSQL, Redis, and API.
-- [x] Add CI with lint, type checks, unit tests, and external-service integration tests.
+- [x] Add Docker Compose and CI infrastructure.
 - [x] Add local setup and migration documentation.
 
-Milestone 1 implementation is complete in the local bootstrap source. Runtime verification requiring Python 3.14, Docker, PostgreSQL, and Redis must be completed on a machine with those tools available.
+## Milestone 2 — Authentication and authorization
 
-## Milestone 2 — Identity and conversations
+- [x] Implement users, password hashing, email normalization, registration, and login.
+- [x] Implement refresh-session rotation, reuse detection, and revocation.
+- [x] Implement authenticated user dependency and immediate session-family revocation checks.
+- [x] Implement optional Google and Apple OIDC login.
+- [x] Add authentication migrations and security tests.
 
-- [ ] Implement users, password hashing, email normalization, and registration/login.
-- [ ] Implement refresh-session rotation and revocation.
-- [ ] Implement conversations/messages repositories and services.
-- [ ] Add user ownership isolation to all operations.
-- [ ] Add pagination, indexes, and concurrency-safe message ordering.
+## Milestone 3 — Conversation and message management
 
-## Milestone 3 — LLM foundation
+- [x] Implement conversation and message ORM models and migration.
+- [x] Implement create/list/get/rename/soft-delete conversation operations.
+- [x] Implement owner-scoped message append and chronological history retrieval.
+- [x] Add keyset pagination and deterministic message sequence pagination.
+- [x] Serialize concurrent PostgreSQL message appends with a conversation row lock.
+- [x] Add unique sequence constraint, ownership tests, deletion tests, and PostgreSQL concurrency test.
 
-- [ ] Define normalized request, response, event, capability, and error contracts.
+## Milestone 4 — LLM foundation
+
+- [ ] Define normalized generation request, response, stream-event, capability, and error contracts.
 - [ ] Implement provider registry and configuration model.
 - [ ] Implement first OpenAI-compatible adapter.
 - [ ] Implement one provider-native adapter.
 - [ ] Build provider contract tests and model catalog.
 
-## Milestone 4 — Generation and streaming
+## Milestone 5 — Generation and streaming
 
 - [ ] Implement generation request lifecycle and idempotency.
 - [ ] Implement context-window accounting and bounded history selection.
@@ -47,7 +53,7 @@ Milestone 1 implementation is complete in the local bootstrap source. Runtime ve
 - [ ] Persist assistant output and final usage in a transaction.
 - [ ] Reconcile interrupted generation records after restart.
 
-## Milestone 5 — Frontend experience
+## Milestone 6 — Frontend experience
 
 - [ ] Implement authentication UI and protected routes.
 - [ ] Implement conversation list and chat workspace.
@@ -55,7 +61,7 @@ Milestone 1 implementation is complete in the local bootstrap source. Runtime ve
 - [ ] Add safe Markdown/code rendering, accessibility, and mobile layout.
 - [ ] Add usage and account screens.
 
-## Milestone 6 — Security, quality, and release
+## Milestone 7 — Security, quality, and release
 
 - [ ] Complete threat-model test cases.
 - [ ] Add distributed rate limiting and account quotas.
@@ -64,3 +70,7 @@ Milestone 1 implementation is complete in the local bootstrap source. Runtime ve
 - [ ] Define SLOs from measured workloads.
 - [ ] Configure secrets, backups, restore tests, staging, and production deployment.
 - [ ] Publish runbooks and release checklist.
+
+## Verification status
+
+Milestones 1–3 are implemented in the local source package. Actual PostgreSQL concurrency, full CI checks, dependency lock resolution, Docker execution, and OAuth provider sign-in must be verified in the target environment before production use.
