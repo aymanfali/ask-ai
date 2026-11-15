@@ -91,6 +91,10 @@ class OpenAICompatibleAdapter:
             cached_input_tokens=cached_tokens,
         )
 
+    def validate_request(self, model: LLMModelConfig, request: GenerationRequest) -> None:
+        """Validate and build the provider payload without performing network I/O."""
+        self._build_payload(model, request)
+
     async def generate(
         self,
         model: LLMModelConfig,

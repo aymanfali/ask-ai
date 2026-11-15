@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from ask_ai.core.config import get_settings
 from ask_ai.database.base import Base
 from ask_ai.modules.auth import models as auth_models  # noqa: F401
+from ask_ai.modules.chat import models as chat_models  # noqa: F401
 from ask_ai.modules.conversations import models as conversation_models  # noqa: F401
 
 config = context.config

@@ -43,7 +43,7 @@ def test_alembic_upgrade_head_on_fresh_schema(monkeypatch: pytest.MonkeyPatch) -
                         "SELECT tablename FROM pg_tables "
                         "WHERE schemaname = current_schema() "
                         "AND tablename IN ('users', 'auth_identities', 'refresh_sessions', "
-                        "'conversations', 'messages')"
+                        "'conversations', 'messages', 'generation_requests', 'usage_ledger')"
                     )
                 )
                 return revision, set(table_result.scalars().all())
@@ -62,13 +62,15 @@ def test_alembic_upgrade_head_on_fresh_schema(monkeypatch: pytest.MonkeyPatch) -
     try:
         command.upgrade(config, "head")
         revision, tables = asyncio.run(read_revision_and_tables())
-        assert revision == "20261114_0003"
+        assert revision == "20261115_0004"
         assert tables == {
             "users",
             "auth_identities",
             "refresh_sessions",
             "conversations",
             "messages",
+            "generation_requests",
+            "usage_ledger",
         }
     finally:
         asyncio.run(drop_schema())
