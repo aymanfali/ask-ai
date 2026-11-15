@@ -2,7 +2,7 @@
 
 A production-oriented, multi-provider AI chat platform.
 
-**Status: Milestones 1 and 2 implemented locally.** The foundation includes configuration, observability middleware, PostgreSQL/Redis lifecycle, Alembic, Docker Compose, CI, email authentication, session management, and optional Google/Apple OIDC. Real-service integration, OAuth provider credentials, dependency lock generation, and container execution still require verification in the target environment.
+**Status: Milestones 1–3 implemented locally.** The foundation includes application infrastructure, email/OIDC authentication, refresh-session security, conversation management, user message persistence, ownership isolation, pagination, and sequence-safe message writes. Real PostgreSQL/Redis integration, OAuth provider credentials, dependency lock generation, and container execution still require verification in the target environment.
 
 ## Product objective
 
@@ -29,7 +29,7 @@ Dependency ranges are constrained in `backend/pyproject.toml`. The lockfile must
 
 ```text
 backend/          FastAPI application and tests
-frontend/         Frontend application (next milestone)
+frontend/         React + TypeScript application
 docs/             Requirements, architecture, security, and delivery docs
 infrastructure/   Local and deployment infrastructure
 .github/          CI and contribution templates
@@ -65,6 +65,7 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 ## Documentation
 
 - [Milestone 2 — Authentication](docs/development/MILESTONE_2.md)
+- [Milestone 3 — Conversations and messages](docs/development/MILESTONE_3.md)
 - [Authentication security model](docs/security/AUTHENTICATION.md)
 
 - [Product requirements](docs/product/PRD.md)

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from logging.config import fileConfig
+from typing import Any
 
 from alembic import context
 from sqlalchemy import pool
@@ -12,6 +14,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from ask_ai.core.config import get_settings
 from ask_ai.database.base import Base
 from ask_ai.modules.auth import models as auth_models  # noqa: F401
+from ask_ai.modules.conversations import models as conversation_models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -55,10 +58,18 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
+    connect_args: dict[str, Any] = {}
+    migration_schema = os.getenv("MIGRATION_SCHEMA")
+    if migration_schema:
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", migration_schema):
+            raise ValueError("MIGRATION_SCHEMA must be a simple lowercase PostgreSQL schema name")
+        connect_args["server_settings"] = {"search_path": migration_schema}
+
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     try:
         async with connectable.connect() as connection:

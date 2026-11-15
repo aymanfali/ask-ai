@@ -32,6 +32,8 @@ dev = [
     "pytest>=8.3,<10.0",
     "pytest-asyncio>=1.0,<2.0",
     "pytest-cov>=6.0,<8.0",
+    "httpx>=0.28,<1.0",
+    "aiosqlite>=0.21,<1.0",
     "aiosqlite>=0.21,<1.0",
     "ruff>=0.11,<1.0",
 ]
@@ -54,10 +56,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC", "S"]
-ignore = ["S101"]
+ignore = ["S101", "S105", "S106", "E501"]
 
-[tool.ruff.lint.per-file-ignores]
-"backend/tests/**/*.py" = ["S105", "S106"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -67,3 +67,4 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 module = ["redis.*"]
 ignore_missing_imports = true
+

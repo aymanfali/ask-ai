@@ -39,7 +39,7 @@ uv run mypy src
 uv run pytest
 ```
 
-Integration tests use `TEST_DATABASE_URL` and `TEST_REDIS_URL`; without these values, the external-service tests are skipped. GitHub Actions supplies disposable PostgreSQL and Redis services and runs the integration tests.
+Integration tests use `TEST_DATABASE_URL`, `TEST_REDIS_URL`, `AUTH_TEST_DATABASE_URL`, and `CONVERSATION_TEST_DATABASE_URL`; without these values, the corresponding external-service tests are skipped. Migration and concurrency tests create uniquely named PostgreSQL schemas and clean them up. GitHub Actions supplies disposable PostgreSQL and Redis services and runs the integration tests.
 
 ## Migrations
 
@@ -50,7 +50,7 @@ uv run alembic revision --autogenerate -m "add users table"
 uv run alembic upgrade head
 ```
 
-Review generated migrations manually. Never treat autogeneration as a substitute for schema review. The initial `20261114_0001` revision is intentionally empty and establishes the migration chain before domain tables are introduced.
+Review generated migrations manually. Never treat autogeneration as a substitute for schema review. The migration chain is incremental: `20261114_0001` establishes the baseline, `20261114_0002` adds authentication tables, and `20261114_0003` adds conversations and messages.
 
 ## Configuration
 
@@ -61,6 +61,11 @@ The CI workflow and Docker build resolve a lockfile before installing dependenci
 
 ## Authentication configuration
 
-Authentication routes are documented in `../docs/development/MILESTONE_2.md`. For local development, configure `SECRET_KEY` in the root `.env`; the example contains a local-only development secret. Never use that value outside local development. Google and Apple are optional; set their client ID/secret pairs and exact redirect URIs to enable them. Google uses a top-level GET callback. Apple uses a POST `form_post` callback and requires a `SameSite=None; Secure` OAuth-state cookie while Apple is enabled; use HTTPS or a browser-supported secure localhost context for local Apple testing.
+Authentication routes are documented in `../docs/development/MILESTONE_2.md`. Conversation and message routes are documented in `../docs/development/MILESTONE_3.md`. For local development, configure `SECRET_KEY` in the root `.env`; the example contains a local-only development secret. Never use that value outside local development. Google and Apple are optional; set their client ID/secret pairs and exact redirect URIs to enable them. Google uses a top-level GET callback. Apple uses a POST `form_post` callback and requires a `SameSite=None; Secure` OAuth-state cookie while Apple is enabled; use HTTPS or a browser-supported secure localhost context for local Apple testing.
 
 Apply the authentication migration with `uv run alembic upgrade head`. The refresh credential is an HttpOnly cookie. Refresh and logout require a signed CSRF token in `X-CSRF-Token`. After a browser reload, call `GET /api/v1/auth/csrf` with `credentials: include`, retain the returned token in memory, and then call the refresh endpoint. Do not persist access or CSRF tokens in browser storage.
+
+
+## Conversation and message management
+
+The conversation API is owner-scoped and requires a bearer access token. It supports conversation create/list/get/rename/soft-delete, appending user messages, and chronological message history. Message append locks the parent conversation row with `SELECT FOR UPDATE` on PostgreSQL and increments its sequence counter in the same transaction. The unique `(conversation_id, sequence)` constraint is the final collision guard. See `../docs/development/MILESTONE_3.md` for API parameters, pagination behavior, deletion semantics, and the PostgreSQL concurrency test.

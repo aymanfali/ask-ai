@@ -142,3 +142,36 @@ Do not use floating point for money. Preserve raw token counts and pricing-versi
 - Indexes on `user_id`, `family_id`, and `expires_at`.
 
 Refresh rotation selects the current row `FOR UPDATE`, inserts the replacement, and marks the old row rotated in the same transaction. Reuse of a rotated token revokes all non-revoked rows in that family. Protected API calls join the access token's family ID to an active, unrotated refresh-session row to support immediate revocation.
+
+## Implemented conversation/message tables (Milestone 3)
+
+### conversations
+
+- `id UUID PK`
+- `user_id UUID FK users(id) ON DELETE CASCADE`
+- `title VARCHAR(200) NOT NULL DEFAULT 'New conversation'`
+- `last_message_sequence BIGINT NOT NULL DEFAULT 0`
+- `created_at`, `updated_at TIMESTAMPTZ NOT NULL`
+- `deleted_at TIMESTAMPTZ NULL`
+- Checks enforce a non-empty trimmed title and nonnegative sequence counter.
+- Index `(user_id, deleted_at, updated_at, id)` supports owner-scoped keyset pagination.
+
+### messages
+
+- `id UUID PK`
+- `conversation_id UUID FK conversations(id) ON DELETE CASCADE`
+- `role VARCHAR(20) NOT NULL` with a database check for the supported internal roles.
+- `content TEXT NOT NULL`, non-empty after trimming.
+- `status VARCHAR(20) NOT NULL` with constrained lifecycle values.
+- `sequence BIGINT NOT NULL`, positive and unique within a conversation.
+- `created_at TIMESTAMPTZ NOT NULL`
+- Unique `(conversation_id, sequence)` guarantees no duplicate ordering positions.
+- Index `(conversation_id, created_at)` supports history access.
+
+### Sequence allocation
+
+Message append locks the parent conversation row with `SELECT FOR UPDATE`, increments `last_message_sequence`, inserts the message, and updates `updated_at` in one transaction. PostgreSQL serializes concurrent writers to one conversation. The unique constraint remains the last line of defense.
+
+### Deletion
+
+Conversation API deletion is soft deletion through `deleted_at`; reads exclude deleted rows. Message rows remain until a defined retention/purge policy executes. Foreign keys cascade on hard deletion of a user or conversation, but ordinary API deletion does not hard-delete history.

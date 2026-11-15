@@ -164,7 +164,7 @@ class Settings(BaseSettings):
             (self.google_client_id, self.google_redirect_uri, "Google"),
             (self.apple_client_id, self.apple_redirect_uri, "Apple"),
         )
-        for client_id, redirect_uri, provider_name in provider_redirects:
+        for _client_id, redirect_uri, provider_name in provider_redirects:
             parsed_redirect = urlsplit(redirect_uri)
             if (
                 parsed_redirect.scheme not in {"http", "https"}
