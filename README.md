@@ -2,7 +2,7 @@
 
 A production-oriented, multi-provider AI chat platform.
 
-**Status: Milestones 1–3 implemented locally.** The foundation includes application infrastructure, email/OIDC authentication, refresh-session security, conversation management, user message persistence, ownership isolation, pagination, and sequence-safe message writes. Real PostgreSQL/Redis integration, OAuth provider credentials, dependency lock generation, and container execution still require verification in the target environment.
+**Status: Milestones 1–4 implemented locally.** The foundation includes application infrastructure, email/OIDC authentication, refresh-session security, conversation management, user message persistence, ownership isolation, pagination, normalized LLM contracts, OpenAI-compatible and Anthropic adapters, model/provider catalog endpoints, and versioned pricing metadata. Live provider calls, PostgreSQL/Redis integration, OAuth credentials, dependency lock generation, and container execution still require verification in the target environment.
 
 ## Product objective
 
@@ -18,7 +18,7 @@ RAG, autonomous agents, multimodal workflows, fine-tuning, billing, and enterpri
 | API | FastAPI, Pydantic v2 |
 | Persistence | PostgreSQL, SQLAlchemy async, Alembic |
 | Ephemeral coordination | Redis |
-| Provider transport | HTTPX and provider-specific adapters |
+| Provider transport | OpenAI and Anthropic async SDK adapters |
 | Frontend | React, TypeScript, Vite, React Router |
 | Python tooling | uv, Ruff, pytest, mypy |
 | Infrastructure | Docker Compose; GitHub Actions |
@@ -66,6 +66,8 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 
 - [Milestone 2 — Authentication](docs/development/MILESTONE_2.md)
 - [Milestone 3 — Conversations and messages](docs/development/MILESTONE_3.md)
+- [Milestone 4 — LLM foundation and verification](docs/development/MILESTONE_4.md)
+- [LLM foundation architecture](docs/architecture/LLM_FOUNDATION.md)
 - [Authentication security model](docs/security/AUTHENTICATION.md)
 
 - [Product requirements](docs/product/PRD.md)
@@ -76,6 +78,7 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 - [Milestone 1 implementation and verification](docs/development/MILESTONE_1.md)
 - [Definition of done](docs/development/DEFINITION_OF_DONE.md)
 - [ADR 0001 — Modular monolith](docs/architecture/ADR/0001-modular-monolith.md)
+- [ADR 0002 — Provider-neutral LLM abstraction](docs/architecture/ADR/0002-provider-abstraction.md)
 
 ## Contributing
 

@@ -5,6 +5,8 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ask_ai.modules.llm.config import LLMModelConfig, LLMProviderConfig
+
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 AppEnvironment = Literal["local", "test", "staging", "production"]
 
@@ -51,6 +53,11 @@ class Settings(BaseSettings):
 
     health_check_timeout_seconds: float = Field(default=2.0, gt=0, le=30)
     cors_origins: list[str] = Field(default_factory=list)
+
+    # LLM provider credentials and model catalog are operator-managed configuration.
+    # The values are validated at startup and are never returned by public endpoints.
+    llm_providers: list[LLMProviderConfig] = Field(default_factory=list)
+    llm_models: list[LLMModelConfig] = Field(default_factory=list)
 
     # Authentication and first-party token settings.
     secret_key: SecretStr = SecretStr("ask-ai-local-development-secret-change-me-please-123456789")
@@ -138,6 +145,19 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must contain at least 32 bytes")
         if self.refresh_session_absolute_ttl_days < self.refresh_token_ttl_days:
             raise ValueError("Refresh session absolute lifetime must be >= refresh token lifetime")
+        provider_ids = [provider.id for provider in self.llm_providers]
+        if len(provider_ids) != len(set(provider_ids)):
+            raise ValueError("LLM provider ids must be unique")
+        model_ids = [model.id for model in self.llm_models]
+        if len(model_ids) != len(set(model_ids)):
+            raise ValueError("LLM model ids must be unique")
+        unknown_provider_ids = sorted(
+            {model.provider_id for model in self.llm_models} - set(provider_ids)
+        )
+        if unknown_provider_ids:
+            raise ValueError(
+                "LLM models reference unconfigured providers: " + ", ".join(unknown_provider_ids)
+            )
         callback = urlsplit(self.frontend_auth_callback_url)
         if (
             callback.scheme not in {"http", "https"}
@@ -197,6 +217,17 @@ class Settings(BaseSettings):
                 )
             if any(not origin.startswith("https://") for origin in self.cors_origins):
                 raise ValueError("CORS_ORIGINS must use HTTPS outside local/test environments")
+            insecure_provider_ids = [
+                provider.id
+                for provider in self.llm_providers
+                if getattr(provider, "base_url", None)
+                and urlsplit(provider.base_url).scheme != "https"
+            ]
+            if insecure_provider_ids:
+                raise ValueError(
+                    "Configured LLM provider endpoints must use HTTPS outside local/test "
+                    "environments: " + ", ".join(insecure_provider_ids)
+                )
             if "ask_ai_local_only" in database_url:
                 raise ValueError("DATABASE_URL must not use the local-development credentials")
             if not redis_url.startswith("rediss://"):

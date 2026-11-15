@@ -56,3 +56,26 @@ def test_production_requires_tls_redis() -> None:
             database_url="postgresql+asyncpg://user:strong-password@db.example.test/ask_ai",
             redis_url="redis://cache.example.test:6379/0",
         )
+
+
+def test_production_rejects_insecure_llm_provider_endpoint() -> None:
+    from pydantic import ValidationError
+
+    provider = {
+        "id": "gateway",
+        "name": "Private Gateway",
+        "type": "openai_compatible",
+        "api_key": "provider-test-secret",
+        "base_url": "http://gateway.internal/v1",
+    }
+    with pytest.raises(ValidationError, match="provider endpoints must use HTTPS"):
+        Settings(
+            app_env="production",
+            secret_key="unique-production-secret-value-0123456789",
+            auth_cookie_secure=True,
+            frontend_auth_callback_url="https://app.example.com/auth/callback",
+            cors_origins=["https://app.example.com"],
+            database_url="postgresql+asyncpg://ask_ai:strong-password@db.example.com/ask_ai",
+            redis_url="rediss://redis.example.com:6379/0",
+            llm_providers=[provider],
+        )

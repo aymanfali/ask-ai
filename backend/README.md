@@ -69,3 +69,9 @@ Apply the authentication migration with `uv run alembic upgrade head`. The refre
 ## Conversation and message management
 
 The conversation API is owner-scoped and requires a bearer access token. It supports conversation create/list/get/rename/soft-delete, appending user messages, and chronological message history. Message append locks the parent conversation row with `SELECT FOR UPDATE` on PostgreSQL and increments its sequence counter in the same transaction. The unique `(conversation_id, sequence)` constraint is the final collision guard. See `../docs/development/MILESTONE_3.md` for API parameters, pagination behavior, deletion semantics, and the PostgreSQL concurrency test.
+
+## LLM foundation
+
+Milestone 4 adds an operator-configured provider registry and model catalog. Configure `LLM_PROVIDERS` and `LLM_MODELS` as JSON arrays in the root `.env`; see the commented examples in `.env.example` and `../docs/development/MILESTONE_4.md`. Supported adapter types are `openai_compatible` (OpenAI Chat Completions-compatible endpoints) and `anthropic` (native Anthropic Messages API). SDK clients are created and closed within FastAPI lifespan, and SDK retries are disabled so future chat orchestration owns retry decisions. Provider credentials are stored as `SecretStr` settings and are never exposed by the catalog endpoints.
+
+The catalog endpoints are `GET /api/v1/providers` and `GET /api/v1/models` (optionally filtered by `provider_id`). These endpoints expose model metadata and the latest effective, versioned pricing record only; unknown pricing remains unknown. They do not generate content. The generation service facade is available internally for Milestone 5; the public generation/SSE endpoint, durable generation lifecycle, usage ledger, and retries are not part of Milestone 4. See `../docs/architecture/LLM_FOUNDATION.md` for the provider contract, error taxonomy, lifecycle, and security decisions.
