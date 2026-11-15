@@ -114,6 +114,10 @@ class AnthropicAdapter:
             cached_input_tokens=cached_tokens,
         )
 
+    def validate_request(self, model: LLMModelConfig, request: GenerationRequest) -> None:
+        """Validate Anthropic-specific request constraints without network I/O."""
+        self._build_payload(model, request)
+
     async def generate(
         self,
         model: LLMModelConfig,

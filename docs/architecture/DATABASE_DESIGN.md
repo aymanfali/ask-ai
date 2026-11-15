@@ -175,3 +175,38 @@ Message append locks the parent conversation row with `SELECT FOR UPDATE`, incre
 ### Deletion
 
 Conversation API deletion is soft deletion through `deleted_at`; reads exclude deleted rows. Message rows remain until a defined retention/purge policy executes. Foreign keys cascade on hard deletion of a user or conversation, but ordinary API deletion does not hard-delete history.
+
+## Implemented generation and usage tables (Milestone 5)
+
+### generation_requests
+
+- `id UUID PK`
+- `user_id UUID FK users(id) ON DELETE CASCADE`
+- `conversation_id UUID FK conversations(id) ON DELETE CASCADE`
+- `user_message_id UUID FK messages(id) ON DELETE CASCADE`
+- `assistant_message_id UUID FK messages(id) ON DELETE CASCADE`
+- `idempotency_key VARCHAR(128) NOT NULL`
+- `request_hash CHAR(64) NOT NULL` (SHA-256 of normalized caller-supplied request values)
+- `provider_id VARCHAR(48) NOT NULL`, `model_id VARCHAR(128) NOT NULL` (resolved from the operator-managed model catalog)
+- `status VARCHAR(20) NOT NULL` (pending/streaming/completed/failed/cancelled/interrupted)
+- `error_code`, `provider_request_id`, `finish_reason` nullable
+- `cancel_requested_at`, `lease_expires_at`, `started_at`, `completed_at`, `created_at`, `updated_at` TIMESTAMPTZ
+- Unique `(user_id, idempotency_key)`; a partial unique index allows at most one pending/streaming generation per conversation.
+- Active generation rows are locked when finalizing, checkpointing, cancelling, and recovering expired leases.
+
+### usage_ledger
+
+- `id UUID PK`
+- `generation_id UUID UNIQUE FK generation_requests(id) ON DELETE CASCADE`
+- `user_id UUID FK users(id) ON DELETE CASCADE`
+- `provider_id VARCHAR(48)`, `model_id VARCHAR(128)`
+- `input_tokens`, `output_tokens`, `total_tokens`, `cached_input_tokens` BIGINT NULL
+- `usage_source VARCHAR(24) NOT NULL` (provider_reported/estimated/unavailable)
+- `estimated_cost NUMERIC(18,10) NULL`, `currency CHAR(3) NULL`, `pricing_version VARCHAR(40) NULL`
+- `created_at TIMESTAMPTZ NOT NULL`
+
+The current implementation writes one final usage row per generation. Unknown prices remain null. If provider usage is incomplete, token counts are labelled estimated; if a worker lease expires before usage can be recovered, usage is labelled unavailable. Hard-delete cascading is retained only for explicit account/data deletion; ordinary conversation deletion is soft deletion.
+
+### Generation/message consistency
+
+The application inserts the user and pending assistant messages first, then inserts the generation row referencing both, within one transaction. Generation status and assistant message status intentionally use separate vocabularies: generation `completed` corresponds to assistant message `complete`.

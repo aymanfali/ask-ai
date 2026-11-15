@@ -59,6 +59,18 @@ class Settings(BaseSettings):
     llm_providers: list[LLMProviderConfig] = Field(default_factory=list)
     llm_models: list[LLMModelConfig] = Field(default_factory=list)
 
+    # Generation limits and orchestration policy. Token counts produced by the
+    # fallback estimator are explicitly marked estimated, never provider-reported.
+    generation_default_max_output_tokens: int = Field(default=1024, ge=1, le=32768)
+    generation_history_max_messages: int = Field(default=100, ge=1, le=240)
+    generation_context_safety_factor: float = Field(default=0.85, gt=0.5, le=1.0)
+    generation_max_retries: int = Field(default=1, ge=0, le=2)
+    generation_retry_base_seconds: float = Field(default=0.5, gt=0, le=10)
+    generation_max_duration_seconds: int = Field(default=180, ge=10, le=900)
+    generation_partial_flush_characters: int = Field(default=4096, ge=256, le=32768)
+    generation_cancel_signal_ttl_seconds: int = Field(default=300, ge=60, le=1800)
+    generation_system_prompt: str | None = Field(default=None, max_length=4000)
+
     # Authentication and first-party token settings.
     secret_key: SecretStr = SecretStr("ask-ai-local-development-secret-change-me-please-123456789")
     jwt_issuer: str = "ask-ai"

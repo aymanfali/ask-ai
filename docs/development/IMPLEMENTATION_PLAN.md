@@ -38,11 +38,12 @@
 
 ## Milestone 4 — LLM foundation
 
-- [ ] Define normalized generation request, response, stream-event, capability, and error contracts.
-- [ ] Implement provider registry and configuration model.
-- [ ] Implement first OpenAI-compatible adapter.
-- [ ] Implement one provider-native adapter.
-- [ ] Build provider contract tests and model catalog.
+- [x] Define normalized generation request, response, stream-event, capability, and error contracts.
+- [x] Implement provider registry and validated operator configuration model.
+- [x] Implement OpenAI-compatible Chat Completions adapter.
+- [x] Implement native Anthropic Messages adapter.
+- [x] Build provider unit/contract-style tests and versioned model/pricing catalog.
+- [x] Expose non-secret provider and model catalog endpoints.
 
 ## Milestone 5 — Generation and streaming
 
@@ -73,4 +74,4 @@
 
 ## Verification status
 
-Milestones 1–3 are implemented in the local source package. Actual PostgreSQL concurrency, full CI checks, dependency lock resolution, Docker execution, and OAuth provider sign-in must be verified in the target environment before production use.
+Milestones 1–4 are implemented in the local source package. Milestone 4 adapter tests use fake SDK-shaped clients and do not make billable provider requests. Actual provider smoke tests, PostgreSQL concurrency, full CI checks, dependency lock resolution, Docker execution, and OAuth provider sign-in must be verified in the target environment before production use.

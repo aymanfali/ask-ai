@@ -19,7 +19,7 @@ class ChatMessage(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     role: MessageRole
-    content: str = Field(min_length=1, max_length=128_000)
+    content: str = Field(min_length=1, max_length=256_000)
 
     @field_validator("content")
     @classmethod

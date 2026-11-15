@@ -2,7 +2,7 @@
 
 A production-oriented, multi-provider AI chat platform.
 
-**Status: Milestones 1–4 implemented locally.** The foundation includes application infrastructure, email/OIDC authentication, refresh-session security, conversation management, user message persistence, ownership isolation, pagination, normalized LLM contracts, OpenAI-compatible and Anthropic adapters, model/provider catalog endpoints, and versioned pricing metadata. Live provider calls, PostgreSQL/Redis integration, OAuth credentials, dependency lock generation, and container execution still require verification in the target environment.
+**Status: Milestone 5 implemented locally.** The platform now includes application infrastructure, authentication, owner-scoped conversations, provider-neutral LLM contracts, streaming generation, idempotency, cancellation, context budgeting, partial-response persistence, and token/cost usage records. Live provider calls, PostgreSQL/Redis integration, OAuth credentials, dependency lock generation, and container execution still require verification in the target environment.
 
 ## Product objective
 
@@ -67,6 +67,7 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 - [Milestone 2 — Authentication](docs/development/MILESTONE_2.md)
 - [Milestone 3 — Conversations and messages](docs/development/MILESTONE_3.md)
 - [Milestone 4 — LLM foundation and verification](docs/development/MILESTONE_4.md)
+- [Milestone 5 — Generation and streaming](docs/development/MILESTONE_5.md)
 - [LLM foundation architecture](docs/architecture/LLM_FOUNDATION.md)
 - [Authentication security model](docs/security/AUTHENTICATION.md)
 

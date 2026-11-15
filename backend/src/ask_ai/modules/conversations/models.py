@@ -68,8 +68,8 @@ class Message(Base):
     __table_args__ = (
         UniqueConstraint("conversation_id", "sequence", name="uq_messages_conversation_sequence"),
         CheckConstraint("sequence >= 1", name="sequence_positive"),
-        CheckConstraint("length(trim(content)) > 0", name="content_not_empty"),
-        CheckConstraint("length(content) <= 32000", name="content_max_length"),
+        CheckConstraint("status != 'complete' OR length(trim(content)) > 0", name="content_not_empty"),
+        CheckConstraint("length(content) <= 256000", name="content_max_length"),
         CheckConstraint(
             "role IN ('user', 'assistant', 'system', 'developer')", name="role_allowed"
         ),

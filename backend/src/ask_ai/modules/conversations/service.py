@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ask_ai.core.errors import ApplicationError
+from ask_ai.modules.chat.models import GenerationRequestRecord, UsageLedger
 from ask_ai.modules.conversations.constants import (
     AUTO_TITLE_MAX_LENGTH,
     DEFAULT_CONVERSATION_TITLE,
@@ -122,6 +123,7 @@ class ConversationService:
 
     async def soft_delete_conversation(self, *, user_id: UUID, conversation_id: UUID) -> None:
         conversation = await self._lock_conversation(user_id, conversation_id)
+        await self._ensure_no_active_generation(conversation_id)
         now = datetime.now(UTC)
         conversation.deleted_at = now
         conversation.updated_at = now
@@ -153,6 +155,7 @@ class ConversationService:
                 status_code=422,
             )
         conversation = await self._lock_conversation(user_id, conversation_id)
+        await self._ensure_no_active_generation(conversation_id)
         sequence = conversation.last_message_sequence + 1
         message = Message(
             conversation_id=conversation.id,
@@ -213,6 +216,49 @@ class ConversationService:
         items = list(reversed(page_desc))
         next_before_sequence = items[0].sequence if has_more and items else None
         return items, next_before_sequence
+
+    async def _ensure_no_active_generation(self, conversation_id: UUID) -> None:
+        active = await self.session.scalar(
+            select(GenerationRequestRecord)
+            .where(
+                GenerationRequestRecord.conversation_id == conversation_id,
+                GenerationRequestRecord.status.in_(("pending", "streaming")),
+            )
+            .with_for_update()
+        )
+        if active is None:
+            return
+        lease_expires_at = active.lease_expires_at
+        if lease_expires_at is not None and lease_expires_at.tzinfo is None:
+            lease_expires_at = lease_expires_at.replace(tzinfo=UTC)
+        if lease_expires_at is not None and lease_expires_at <= datetime.now(UTC):
+            stale_message = await self.session.get(Message, active.assistant_message_id)
+            if stale_message is not None:
+                stale_message.status = "interrupted"
+            active.status = "interrupted"
+            active.error_code = "worker_lost"
+            active.completed_at = datetime.now(UTC)
+            existing_usage = await self.session.scalar(
+                select(UsageLedger.id).where(UsageLedger.generation_id == active.id)
+            )
+            if existing_usage is None:
+                self.session.add(
+                    UsageLedger(
+                        generation_id=active.id,
+                        user_id=active.user_id,
+                        provider_id=active.provider_id,
+                        model_id=active.model_id,
+                        usage_source="unavailable",
+                    )
+                )
+            await self.session.flush()
+            return
+        raise ApplicationError(
+            code="generation_in_progress",
+            message="A generation is already active for this conversation.",
+            status_code=409,
+            details={"generation_id": str(active.id)},
+        )
 
     async def _lock_conversation(self, user_id: UUID, conversation_id: UUID) -> Conversation:
         conversation = await self.session.scalar(
