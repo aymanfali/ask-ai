@@ -1,38 +1,96 @@
 import { useEffect, useState } from "react";
-import { getLiveness } from "./lib/api";
+import { AuthScreen } from "./features/auth/AuthScreen";
+import { ChatWorkspace } from "./features/chat/ChatWorkspace";
+import { exchangeOAuthCode, getAuthProviders, restoreSession } from "./lib/api";
+import type { User } from "./lib/types";
 import "./app.css";
 
-type ApiState = "checking" | "online" | "offline";
+type AppPhase = "booting" | "signed-out" | "signed-in";
 
 export function App() {
-  const [apiState, setApiState] = useState<ApiState>("checking");
+  const [phase, setPhase] = useState<AppPhase>("booting");
+  const [user, setUser] = useState<User | null>(null);
+  const [providers, setProviders] = useState<string[]>([]);
+  const [authError, setAuthError] = useState<string | null>(null);
+
   useEffect(() => {
-    let active = true;
-    getLiveness().then((result) => {
-      if (active) setApiState(result.status === "ok" ? "online" : "offline");
-    }).catch(() => {
-      if (active) setApiState("offline");
-    });
-    return () => { active = false; };
+    let mounted = true;
+    const handleSessionExpired = () => {
+      if (!mounted) return;
+      setUser(null);
+      setAuthError("Your session has ended. Please sign in again.");
+      setPhase("signed-out");
+    };
+    window.addEventListener("ask-ai:session-expired", handleSessionExpired);
+    const finishBootstrap = async () => {
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const oauthCode = fragment.get("code");
+      const oauthError = fragment.get("error");
+      if (oauthCode || oauthError) {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
+
+      const providerTask = getAuthProviders().then((items) => {
+        if (mounted) setProviders(items);
+      }).catch(() => {
+        if (mounted) setProviders([]);
+      });
+
+      try {
+        if (oauthCode) {
+          const authenticatedUser = await exchangeOAuthCode(oauthCode);
+          if (mounted) {
+            setUser(authenticatedUser);
+            setPhase("signed-in");
+          }
+        } else if (oauthError) {
+          if (mounted) {
+            setAuthError("Your identity provider could not complete sign-in. Please try again.");
+            setPhase("signed-out");
+          }
+        } else {
+          const restoredUser = await restoreSession();
+          if (mounted) {
+            setUser(restoredUser);
+            setPhase(restoredUser ? "signed-in" : "signed-out");
+          }
+        }
+      } catch {
+        if (mounted) {
+          setAuthError("Sign-in could not be completed. Please try again.");
+          setPhase("signed-out");
+        }
+      } finally {
+        await providerTask;
+      }
+    };
+    void finishBootstrap();
+    return () => {
+      mounted = false;
+      window.removeEventListener("ask-ai:session-expired", handleSessionExpired);
+    };
   }, []);
 
-  return (
-    <main className="shell">
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Ask AI home">
-          <span className="brand-mark" aria-hidden="true">A</span><span>Ask AI</span>
-        </a>
-        <span className={`status status--${apiState}`} role="status" aria-live="polite">
-          <span className="status-dot" aria-hidden="true" />API {apiState}
-        </span>
-      </header>
-      <section className="hero" aria-labelledby="title">
-        <p className="eyebrow">MULTI-PROVIDER AI WORKSPACE</p>
-        <h1 id="title">One place to think with AI.</h1>
-        <p className="lead">Ask AI is being built as a secure workspace for conversations across language models.</p>
-        <div className="notice"><strong>Foundation release</strong><span>Authentication, model selection, persistent chat, and streaming are planned for upcoming milestones.</span></div>
-      </section>
-      <footer className="footer">Ask AI · Development foundation</footer>
-    </main>
-  );
+  if (phase === "booting") {
+    return (
+      <main className="boot-screen">
+        <div className="boot-mark"><span className="brand-mark">✳</span><span>ask<span className="brand-accent">.ai</span></span></div>
+        <div className="boot-spinner"/>
+        <p>Preparing your workspace</p>
+      </main>
+    );
+  }
+
+  if (phase === "signed-out" || !user) {
+    return <AuthScreen providers={providers} initialError={authError} onAuthenticated={(authenticatedUser) => {
+      setUser(authenticatedUser);
+      setAuthError(null);
+      setPhase("signed-in");
+    }}/>;
+  }
+
+  return <ChatWorkspace user={user} onLogout={() => {
+    setUser(null);
+    setPhase("signed-out");
+  }}/>;
 }

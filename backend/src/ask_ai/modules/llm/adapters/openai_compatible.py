@@ -41,8 +41,12 @@ class OpenAICompatibleAdapter:
         if client is None:
             try:
                 from openai import AsyncOpenAI
-            except ImportError as exc:  # pragma: no cover - environment-specific install error
-                raise RuntimeError("Install the 'openai' package to enable this provider") from exc
+            except (
+                ImportError
+            ) as exc:  # pragma: no cover - environment-specific install error
+                raise RuntimeError(
+                    "Install the 'openai' package to enable this provider"
+                ) from exc
             client = AsyncOpenAI(
                 api_key=config.api_key.get_secret_value(),
                 base_url=config.base_url,
@@ -51,7 +55,9 @@ class OpenAICompatibleAdapter:
             )
         self._client = client
 
-    def _build_payload(self, model: LLMModelConfig, request: GenerationRequest) -> dict[str, Any]:
+    def _build_payload(
+        self, model: LLMModelConfig, request: GenerationRequest
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": model.provider_model_id,
             "messages": [
@@ -78,12 +84,20 @@ class OpenAICompatibleAdapter:
         if raw_usage is None:
             return TokenUsage()
         input_tokens = _as_nonnegative_int(getattr(raw_usage, "prompt_tokens", None))
-        output_tokens = _as_nonnegative_int(getattr(raw_usage, "completion_tokens", None))
+        output_tokens = _as_nonnegative_int(
+            getattr(raw_usage, "completion_tokens", None)
+        )
         total_tokens = _as_nonnegative_int(getattr(raw_usage, "total_tokens", None))
-        if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        if (
+            total_tokens is None
+            and input_tokens is not None
+            and output_tokens is not None
+        ):
             total_tokens = input_tokens + output_tokens
         prompt_details = getattr(raw_usage, "prompt_tokens_details", None)
-        cached_tokens = _as_nonnegative_int(getattr(prompt_details, "cached_tokens", None))
+        cached_tokens = _as_nonnegative_int(
+            getattr(prompt_details, "cached_tokens", None)
+        )
         return TokenUsage(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
@@ -91,7 +105,9 @@ class OpenAICompatibleAdapter:
             cached_input_tokens=cached_tokens,
         )
 
-    def validate_request(self, model: LLMModelConfig, request: GenerationRequest) -> None:
+    def validate_request(
+        self, model: LLMModelConfig, request: GenerationRequest
+    ) -> None:
         """Validate and build the provider payload without performing network I/O."""
         self._build_payload(model, request)
 
@@ -116,7 +132,9 @@ class OpenAICompatibleAdapter:
                 model_id=model.id,
                 provider_id=self.provider_id,
                 content=content,
-                finish_reason=_optional_string(getattr(choices[0], "finish_reason", None)),
+                finish_reason=_optional_string(
+                    getattr(choices[0], "finish_reason", None)
+                ),
                 usage=self._usage(getattr(response, "usage", None)),
                 provider_request_id=_optional_string(getattr(response, "id", None)),
             )
@@ -156,8 +174,12 @@ class OpenAICompatibleAdapter:
                     delta = getattr(choice, "delta", None)
                     text = _text_content(getattr(delta, "content", None))
                     if text:
-                        yield GenerationEvent(type=GenerationEventType.TEXT_DELTA, text=text)
-                    current_finish = _optional_string(getattr(choice, "finish_reason", None))
+                        yield GenerationEvent(
+                            type=GenerationEventType.TEXT_DELTA, text=text
+                        )
+                    current_finish = _optional_string(
+                        getattr(choice, "finish_reason", None)
+                    )
                     if current_finish:
                         finish_reason = current_finish
             if finish_reason is None:
@@ -192,7 +214,11 @@ class OpenAICompatibleAdapter:
 
 
 def _as_nonnegative_int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+    return (
+        value
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        else None
+    )
 
 
 def _optional_string(value: Any) -> str | None:
