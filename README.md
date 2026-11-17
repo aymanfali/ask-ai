@@ -2,7 +2,7 @@
 
 A production-oriented, multi-provider AI chat platform.
 
-**Status: Milestone 5 implemented locally.** The platform now includes application infrastructure, authentication, owner-scoped conversations, provider-neutral LLM contracts, streaming generation, idempotency, cancellation, context budgeting, partial-response persistence, and token/cost usage records. Live provider calls, PostgreSQL/Redis integration, OAuth credentials, dependency lock generation, and container execution still require verification in the target environment.
+**Status: Milestone 6 implemented locally.** The platform now includes application infrastructure, authentication, owner-scoped conversations, provider-neutral LLM contracts, durable streaming generation, idempotency, cancellation, context budgeting, partial-response persistence, token/cost usage records, and a React chat workspace with session restoration and POST-SSE consumption. Live provider calls, PostgreSQL/Redis integration, OAuth credentials, dependency lock generation, and container execution still require verification in the target environment.
 
 ## Product objective
 
@@ -68,6 +68,7 @@ Prerequisites: Python 3.14, uv, Docker with Compose, and Git.
 - [Milestone 3 — Conversations and messages](docs/development/MILESTONE_3.md)
 - [Milestone 4 — LLM foundation and verification](docs/development/MILESTONE_4.md)
 - [Milestone 5 — Generation and streaming](docs/development/MILESTONE_5.md)
+- [Milestone 6 — Frontend chat experience](docs/development/MILESTONE_6.md)
 - [LLM foundation architecture](docs/architecture/LLM_FOUNDATION.md)
 - [Authentication security model](docs/security/AUTHENTICATION.md)
 

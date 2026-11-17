@@ -28,7 +28,9 @@ class AnthropicAdapter:
 
     provider_type = "anthropic"
 
-    def __init__(self, config: AnthropicProviderConfig, *, client: Any | None = None) -> None:
+    def __init__(
+        self, config: AnthropicProviderConfig, *, client: Any | None = None
+    ) -> None:
         self.provider_id = config.id
         self.provider_name = config.name
         self.config = config
@@ -36,7 +38,9 @@ class AnthropicAdapter:
         if client is None:
             try:
                 from anthropic import AsyncAnthropic
-            except ImportError as exc:  # pragma: no cover - environment-specific install error
+            except (
+                ImportError
+            ) as exc:  # pragma: no cover - environment-specific install error
                 raise RuntimeError(
                     "Install the 'anthropic' package to enable this provider"
                 ) from exc
@@ -50,7 +54,9 @@ class AnthropicAdapter:
             client = AsyncAnthropic(**client_kwargs)
         self._client = client
 
-    def _build_payload(self, model: LLMModelConfig, request: GenerationRequest) -> dict[str, Any]:
+    def _build_payload(
+        self, model: LLMModelConfig, request: GenerationRequest
+    ) -> dict[str, Any]:
         if request.temperature is not None and request.top_p is not None:
             raise ProviderBadRequestError(self.provider_id, 400)
         if request.temperature is not None and request.temperature > 1:
@@ -101,7 +107,9 @@ class AnthropicAdapter:
             return TokenUsage()
         input_tokens = _as_nonnegative_int(getattr(raw_usage, "input_tokens", None))
         output_tokens = _as_nonnegative_int(getattr(raw_usage, "output_tokens", None))
-        cached_tokens = _as_nonnegative_int(getattr(raw_usage, "cache_read_input_tokens", None))
+        cached_tokens = _as_nonnegative_int(
+            getattr(raw_usage, "cache_read_input_tokens", None)
+        )
         total_tokens = (
             input_tokens + output_tokens
             if input_tokens is not None and output_tokens is not None
@@ -114,7 +122,9 @@ class AnthropicAdapter:
             cached_input_tokens=cached_tokens,
         )
 
-    def validate_request(self, model: LLMModelConfig, request: GenerationRequest) -> None:
+    def validate_request(
+        self, model: LLMModelConfig, request: GenerationRequest
+    ) -> None:
         """Validate Anthropic-specific request constraints without network I/O."""
         self._build_payload(model, request)
 
@@ -171,9 +181,13 @@ class AnthropicAdapter:
                 event_type = getattr(event, "type", None)
                 if event_type == "message_start":
                     message = getattr(event, "message", None)
-                    request_id = _optional_string(getattr(message, "id", None)) or request_id
+                    request_id = (
+                        _optional_string(getattr(message, "id", None)) or request_id
+                    )
                     usage = getattr(message, "usage", None)
-                    input_tokens = _as_nonnegative_int(getattr(usage, "input_tokens", None))
+                    input_tokens = _as_nonnegative_int(
+                        getattr(usage, "input_tokens", None)
+                    )
                     cached_tokens = _as_nonnegative_int(
                         getattr(usage, "cache_read_input_tokens", None)
                     )
@@ -182,14 +196,19 @@ class AnthropicAdapter:
                     if getattr(delta, "type", None) == "text_delta":
                         text = getattr(delta, "text", None)
                         if isinstance(text, str) and text:
-                            yield GenerationEvent(type=GenerationEventType.TEXT_DELTA, text=text)
+                            yield GenerationEvent(
+                                type=GenerationEventType.TEXT_DELTA, text=text
+                            )
                 elif event_type == "message_delta":
                     delta = getattr(event, "delta", None)
                     usage = getattr(event, "usage", None)
                     finish_reason = (
-                        _optional_string(getattr(delta, "stop_reason", None)) or finish_reason
+                        _optional_string(getattr(delta, "stop_reason", None))
+                        or finish_reason
                     )
-                    output_tokens = _as_nonnegative_int(getattr(usage, "output_tokens", None))
+                    output_tokens = _as_nonnegative_int(
+                        getattr(usage, "output_tokens", None)
+                    )
                 elif event_type == "message_stop":
                     message_stopped = True
                 elif event_type == "error":
@@ -208,7 +227,9 @@ class AnthropicAdapter:
                 _UsageSnapshot(input_tokens, output_tokens, cached_tokens)
             )
             if input_tokens is not None or output_tokens is not None:
-                yield GenerationEvent(type=GenerationEventType.USAGE, usage=usage_result)
+                yield GenerationEvent(
+                    type=GenerationEventType.USAGE, usage=usage_result
+                )
             yield GenerationEvent(
                 type=GenerationEventType.COMPLETED,
                 usage=usage_result,
@@ -248,7 +269,11 @@ class _UsageSnapshot:
 
 
 def _as_nonnegative_int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+    return (
+        value
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        else None
+    )
 
 
 def _optional_string(value: Any) -> str | None:
