@@ -21,6 +21,7 @@ from ask_ai.modules.auth.dependencies import (
     user_response_values,
 )
 from ask_ai.modules.auth.models import User
+from ask_ai.modules.auth.oauth_callbacks import build_oauth_callback_request
 from ask_ai.modules.auth.rate_limit import client_ip, enforce_rate_limit
 from ask_ai.modules.auth.schemas import (
     AuthProvidersResponse,
