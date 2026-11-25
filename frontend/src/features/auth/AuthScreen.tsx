@@ -87,12 +87,12 @@ export function AuthScreen({ providers, initialError, onAuthenticated }: AuthScr
 
           {providers.length > 0 && (
             <div className="oauth-options">
-              {providers.includes("google") && <button type="button" className="oauth-button" onClick={() => startOAuth("google")}><span className="google-g">G</span> Continue with Google</button>}
-              {providers.includes("apple") && <button type="button" className="oauth-button" onClick={() => startOAuth("apple")}><span className="apple-mark">●</span> Continue with Apple</button>}
+              {providers.includes("google") && <button type="button" className="oauth-button" onClick={() => startOAuth("google")}><span className="google-g">G</span> {mode === "register" ? "Sign up with Google" : "Sign in with Google"}</button>}
+              {providers.includes("apple") && <button type="button" className="oauth-button" onClick={() => startOAuth("apple")}><span className="apple-mark">●</span> {mode === "register" ? "Sign up with Apple" : "Sign in with Apple"}</button>}
             </div>
           )}
 
-          {providers.length > 0 && <div className="auth-divider"><span/>or continue with email<span/></div>}
+          {providers.length > 0 && <div className="auth-divider"><span/>{mode === "register" ? "or sign up with email" : "or sign in with email"}<span/></div>}
 
           <form className="auth-form" onSubmit={submit}>
             {mode === "register" && (
