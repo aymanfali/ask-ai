@@ -1031,32 +1031,34 @@ class GenerationService:
     async def _next_or_cancel(
         self, iterator: AsyncIterator[GenerationEvent], generation_id: UUID
     ) -> AsyncIterator[GenerationEvent | object | None]:
-        if await self._is_cancelled(generation_id):
-            raise ExplicitGenerationCancellation
-        next_task = asyncio.create_task(iterator.__anext__())
         loop = asyncio.get_running_loop()
-        last_heartbeat = loop.time()
-        try:
-            while True:
-                done, _ = await asyncio.wait({next_task}, timeout=0.25)
-                if next_task in done:
-                    try:
-                        yield next_task.result()
-                    except StopAsyncIteration:
-                        yield None
-                    return
-                if await self._is_cancelled(generation_id):
+        while True:
+            if await self._is_cancelled(generation_id):
+                raise ExplicitGenerationCancellation
+            next_task = asyncio.create_task(iterator.__anext__())
+            last_heartbeat = loop.time()
+            try:
+                while True:
+                    done, _ = await asyncio.wait({next_task}, timeout=0.25)
+                    if next_task in done:
+                        try:
+                            yield next_task.result()
+                        except StopAsyncIteration:
+                            yield None
+                            return
+                        break
+                    if await self._is_cancelled(generation_id):
+                        next_task.cancel()
+                        await asyncio.gather(next_task, return_exceptions=True)
+                        raise ExplicitGenerationCancellation
+                    if loop.time() - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
+                        last_heartbeat = loop.time()
+                        yield _HEARTBEAT
+            except asyncio.CancelledError:
+                if not next_task.done():
                     next_task.cancel()
                     await asyncio.gather(next_task, return_exceptions=True)
-                    raise ExplicitGenerationCancellation
-                if loop.time() - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
-                    last_heartbeat = loop.time()
-                    yield _HEARTBEAT
-        except asyncio.CancelledError:
-            if not next_task.done():
-                next_task.cancel()
-                await asyncio.gather(next_task, return_exceptions=True)
-            raise
+                raise
 
     async def _is_cancelled(self, generation_id: UUID) -> bool:
         if self.redis is None:
